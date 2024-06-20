@@ -239,7 +239,7 @@ class TaskSet:
             return total_score
         
 
-def load_data() -> (TaskSet, TaskSet):
+def load_data() -> 'tuple[TaskSet, TaskSet]':
     data = json.load(open(f"{os.path.dirname(__file__)}/arc1.json"))
     train_tasks = []
     eval_tasks = []
@@ -247,6 +247,47 @@ def load_data() -> (TaskSet, TaskSet):
         train_tasks.append(Task(id, task['train'], task['test'], 'train'))
 
     for id, task in data['eval'].items():
+        eval_tasks.append(Task(id, task['train'], task['test'], 'eval'))
+
+    return TaskSet(train_tasks), TaskSet(eval_tasks)
+
+def load_data_from_arcprize(
+        version: str = 'arc-prize-2024',
+        training_challenges: str = None,
+        training_solutions: str = None,
+        evaluation_challenges: str = None,
+        evaluation_solutions: str = None
+    ) -> 'tuple[TaskSet, TaskSet]':
+    root = os.path.join(os.path.dirname(__file__), 'data', version)
+    if not training_challenges:
+        training_challenges = os.path.join(root, 'arc-agi_training_challenges.json')
+    if not training_solutions:
+        training_solutions = os.path.join(root, 'arc-agi_training_solutions.json')
+    if not evaluation_challenges:
+        evaluation_challenges = os.path.join(root, 'arc-agi_evaluation_challenges.json')
+    if not evaluation_solutions:
+        evaluation_solutions = os.path.join(root, 'arc-agi_evaluation_solutions.json')
+
+    train_challenges = json.load(open(training_challenges))
+    train_solutions = json.load(open(training_solutions))
+    eval_challenges = json.load(open(evaluation_challenges))
+    eval_solutions = json.load(open(evaluation_solutions))
+
+    train_tasks = []
+    eval_tasks = []
+
+    for id in train_challenges:
+        task = train_challenges[id]
+        solution = train_solutions[id]
+        for i in range(len(solution)):
+            task['test'][i]['output'] = solution[i]
+        train_tasks.append(Task(id, task['train'], task['test'], 'train'))
+
+    for id in eval_challenges:
+        task = eval_challenges[id]
+        solution = eval_solutions[id]
+        for i in range(len(solution)):
+            task['test'][i]['output'] = solution[i]
         eval_tasks.append(Task(id, task['train'], task['test'], 'eval'))
 
     return TaskSet(train_tasks), TaskSet(eval_tasks)
