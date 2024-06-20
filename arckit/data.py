@@ -256,7 +256,8 @@ def load_data_from_arcprize(
         training_challenges: str = None,
         training_solutions: str = None,
         evaluation_challenges: str = None,
-        evaluation_solutions: str = None
+        evaluation_solutions: str = None,
+        test_challenges: str = None
     ) -> 'tuple[TaskSet, TaskSet]':
     root = os.path.join(os.path.dirname(__file__), 'data', version)
     if not training_challenges:
@@ -267,30 +268,40 @@ def load_data_from_arcprize(
         evaluation_challenges = os.path.join(root, 'arc-agi_evaluation_challenges.json')
     if not evaluation_solutions:
         evaluation_solutions = os.path.join(root, 'arc-agi_evaluation_solutions.json')
+    if not test_challenges:
+        test_challenges = os.path.join(root, 'arc-agi_test_challenges.json')
 
     train_challenges = json.load(open(training_challenges))
     train_solutions = json.load(open(training_solutions))
     eval_challenges = json.load(open(evaluation_challenges))
     eval_solutions = json.load(open(evaluation_solutions))
+    test_challenges_data = json.load(open(test_challenges))
 
     train_tasks = []
     eval_tasks = []
+    test_tasks = []
 
-    for id in train_challenges:
-        task = train_challenges[id]
+    for id, task in train_challenges.items():
         solution = train_solutions[id]
+        assert len(solution) == len(task['test'])
         for i in range(len(solution)):
             task['test'][i]['output'] = solution[i]
         train_tasks.append(Task(id, task['train'], task['test'], 'train'))
 
-    for id in eval_challenges:
-        task = eval_challenges[id]
+    for id, task in eval_challenges.items():
         solution = eval_solutions[id]
+        assert len(solution) == len(task['test'])
         for i in range(len(solution)):
             task['test'][i]['output'] = solution[i]
         eval_tasks.append(Task(id, task['train'], task['test'], 'eval'))
 
-    return TaskSet(train_tasks), TaskSet(eval_tasks)
+    for id, task in test_challenges_data.items():
+        task = test_challenges_data[id]
+        for i in range(len(task['test'])):
+            task['test'][i]['output'] = []
+        test_tasks.append(Task(id, task['train'], task['test'], 'test'))
+
+    return TaskSet(train_tasks), TaskSet(eval_tasks), TaskSet(test_tasks)
 
 def load_single(id: str) -> Task:
     """
